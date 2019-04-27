@@ -19,7 +19,7 @@ class Net(torch.nn.Module):
 	def __call__(self, din):
 		return self.forward(din)
 	def forward(self, din):
-		din = din.view(-1, 54)
+		din = din.view(-1, din.shape[1])
 		x = F.sigmoid(self.hidden1(din))
 		x = F.sigmoid(self.hidden2(x))
 		x = F.sigmoid(self.hidden3(x))
