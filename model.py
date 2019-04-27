@@ -41,7 +41,8 @@ class Encoder(torch.nn.Module):
 		h0 = torch.randn(self.num_layer, batch, self.hidden_dim)
 		c0 = torch.randn(self.num_layer, batch, self.hidden_dim)
 		out, (hn, cn) = self.lstm_layer(input_data, (h0, c0))
-		prediction = self.prediction(out)
+		prediction = out[-1]
+		prediction = self.prediction(prediction)
 		return prediction
 # class Attention(torch.nn.Module):
 # 	def __init__(self, hidden_dim, encoder_dim):
