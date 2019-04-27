@@ -44,22 +44,18 @@ if __name__ == '__main__':
 	# optimizer = torch.optim.SGD(net.parameters(), lr = 0.2, momentum = 0.9)
 	loss_func = torch.nn.MSELoss()
 	# # attention = Attention(hidden_dim = 10, encoder_dim = 10) 
-	epoch = 5
-	label = label[:, 0].view((-1,1))
+	epoch = 500
+	label = label[:, 1].view((-1,1))
 	seq_size = 4
 	batch_size = int(len(data) / seq_size)
 	index = [i - 1 for i in range(len(data) + 1) if i % seq_size == 0]
 	index = index[1:]
 	label = label[index]
-	print (index)
 	for i in range(epoch):
 		print (i)
 		deep_factor = net(data) 
 		pack_factor = deep_factor.view(seq_size, batch_size, factor_dim)
-		# label = label.view(seq_size, batch_size, 1)
 		prediction = encoder(pack_factor)
-
-
 
 
 		loss = loss_func(prediction, label)
