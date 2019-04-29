@@ -19,7 +19,7 @@ class Net(torch.nn.Module):
 	def __call__(self, din):
 		return self.forward(din)
 	def forward(self, din):
-		din = din.view(-1, 54)
+		din = din.view(-1, din.shape[1])
 		x = F.sigmoid(self.hidden1(din))
 		x = F.sigmoid(self.hidden2(x))
 		x = F.sigmoid(self.hidden3(x))
@@ -41,7 +41,8 @@ class Encoder(torch.nn.Module):
 		h0 = torch.randn(self.num_layer, batch, self.hidden_dim)
 		c0 = torch.randn(self.num_layer, batch, self.hidden_dim)
 		out, (hn, cn) = self.lstm_layer(input_data, (h0, c0))
-		prediction = self.prediction(out)
+		prediction = out[-1]
+		prediction = self.prediction(prediction)
 		return prediction
 # class Attention(torch.nn.Module):
 # 	def __init__(self, hidden_dim, encoder_dim):
