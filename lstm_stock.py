@@ -28,6 +28,7 @@ def load_data(dataname):
 	feature = feature.astype(np.float64)
 	return feature, label
 
+
 def create_dataset(dataset, label, look_back=1):
 	dataX, dataY = [], []
 	for i in range(len(dataset)-look_back-1):
@@ -35,6 +36,14 @@ def create_dataset(dataset, label, look_back=1):
 		dataX.append(a)
 		dataY.append(label[i + look_back - 1, :])
 	return np.array(dataX), np.array(dataY)
+
+
+# larger than 0 -> 1, less than 0 -> 0
+def zero_or_one(x):
+	h = np.zeros_like(x)
+	h[x > 0] = 1
+	return h
+
 
 dataname = 'AMZN_return_factor.csv'
 data, label = load_data(dataname)
@@ -66,37 +75,47 @@ model = Sequential()
 # model.add(Dense(108, input_shape=(46, look_back), activation='sigmoid',kernel_regularizer=regularizers.l2(0.01)))
 # model.add(Dense(108, activation='sigmoid',kernel_regularizer=regularizers.l2(0.01)))
 # model.add(Dense(32,kernel_regularizer=regularizers.l2(0.01)))
-model.add(LSTM(100, input_shape=(46, look_back)))
-model.add(Dropout(0.1))
+model.add(LSTM(150, input_shape=(46, look_back)))
+model.add(Dropout(0.2))
 model.add(Dense(1))
 model.compile(loss='mse', optimizer='adam')
-model.fit(trainX, trainY, validation_split=0.1, epochs=200, batch_size=128, shuffle=True,verbose=1)
+model.fit(trainX, trainY, validation_split=0.1, epochs=100, batch_size=128, shuffle=True,verbose=1)
 # make predictions
-trainPredict = model.predict(trainX)
-trainPredict = trainPredict * (train_label_std + 1e-8) + train_label_mean
+train_predict = model.predict(trainX)
+train_predict = train_predict * (train_label_std + 1e-8) + train_label_mean
 # print(trainPredict)
-testPredict = model.predict(testX)
-testPredict = testPredict * (train_label_std + 1e-8) + train_label_mean
+test_predict = model.predict(testX)
+test_predict = test_predict * (train_label_std + 1e-8) + train_label_mean
 
 
 # calculate root mean squared error
-trainScore = math.sqrt(mean_squared_error(trainY, trainPredict))
+trainScore = math.sqrt(mean_squared_error(trainY, train_predict))
 print('Train Score: %.2f RMSE' % (trainScore))
-testScore = math.sqrt(mean_squared_error(testY, testPredict))
+testScore = math.sqrt(mean_squared_error(testY, test_predict))
 print('Test Score: %.2f RMSE' % (testScore))
+
+# calculate accuracy for classifying rise or fall
+train_label_sign = zero_or_one(trainY)
+train_predict_sign = zero_or_one(train_predict)
+test_label_sign = zero_or_one(testY)
+test_predict_sign = zero_or_one(test_predict)
+train_acc = float((train_predict_sign == train_label_sign).astype(int).sum())  / float(train_predict.shape[0])
+print('Train Accuracy: %.2f ' % (train_acc))
+test_acc = float((test_label_sign == test_predict_sign).astype(int).sum())  / float(test_predict.shape[0])
+print('Test Accuracy: %.2f ' % (test_acc))
 
 trainPredictPlot = np.empty_like(y)
 trainPredictPlot[:, :] = np.nan
-trainPredictPlot[look_back:len(trainPredict)+look_back, :] = trainPredict
+trainPredictPlot[look_back:len(train_predict)+look_back, :] = train_predict
 testPredictPlot = np.empty_like(y)
 testPredictPlot[:, :] = np.nan
-testPredictPlot[len(trainPredict)+(look_back*2)+1:len(y)-1, :] = testPredict
+testPredictPlot[len(train_predict)+(look_back*2)+1:len(y)-1, :] = test_predict
 plt.plot(y)
 plt.plot(trainPredictPlot)
 print('testPrices:')
 testPrices=y[test_size+look_back:]
 print(testPrices)
 print('testPredictions:')
-print(testPredict)
+print(test_predict)
 plt.plot(testPredictPlot)
 plt.show()

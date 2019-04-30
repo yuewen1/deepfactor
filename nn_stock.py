@@ -28,6 +28,12 @@ def load_data(dataname):
 	feature = feature.astype(np.float64)
 	return feature, label
 
+# larger than 0 -> 1, less than 0 -> 0
+def zero_or_one(x):
+	h = np.zeros_like(x)
+	h[x > 0] = 1
+	return h
+
 dataname = 'AMZN_return_factor.csv'
 data, label = load_data(dataname)
 y = label[:,1].reshape(-1,1)
@@ -46,29 +52,38 @@ test_label_norm = (test_label - train_label_mean) / (train_label_std + 1e-8)
 
 
 model = Sequential()
-model.add(Dense(216, input_shape=(46,), activation='tanh'))
-model.add(Dense(108, activation='tanh'))
-model.add(Dense(32, activation='tanh'))
+model.add(Dense(196, input_shape=(46,), activation='tanh'))
+model.add(Dense(98, activation='tanh'))
+model.add(Dense(46, activation='tanh'))
 model.add(Dense(1))
 model.compile(loss='mse', optimizer='adam')
 model.fit(train_data_norm, train_label_norm, validation_split=0.1, epochs=100, batch_size=8, shuffle=True,verbose=1)
-trainPredict = model.predict(train_data_norm)
-trainPredict = trainPredict * (train_label_std + 1e-8) + train_label_mean
-print(trainPredict.shape)
-testPredict = model.predict(test_data_norm)
-testPredict = testPredict * (train_label_std + 1e-8) + train_label_mean
+train_predict = model.predict(train_data_norm)
+train_predict = train_predict * (train_label_std + 1e-8) + train_label_mean
+test_predict = model.predict(test_data_norm)
+test_predict = test_predict * (train_label_std + 1e-8) + train_label_mean
 
-trainScore = math.sqrt(mean_squared_error(train_label_norm, trainPredict))
+# calculate root mean squared error
+trainScore = math.sqrt(mean_squared_error(train_label_norm, train_predict))
 print('Train Score: %.2f RMSE' % (trainScore))
-testScore = math.sqrt(mean_squared_error(test_label_norm, testPredict))
+testScore = math.sqrt(mean_squared_error(test_label_norm, test_predict))
 print('Test Score: %.2f RMSE' % (testScore))
+# calculate accuracy for classifying rise or fall
+train_label_sign = zero_or_one(train_label_norm)
+train_predict_sign = zero_or_one(train_predict)
+test_label_sign = zero_or_one(test_label_norm)
+test_predict_sign = zero_or_one(test_predict)
+train_acc = float((train_predict_sign == train_label_sign).astype(int).sum())  / float(train_predict.shape[0])
+print('Train Accuracy: %.2f ' % (train_acc))
+test_acc = float((test_label_sign == test_predict_sign).astype(int).sum())  / float(test_predict.shape[0])
+print('Test Accuracy: %.2f ' % (test_acc))
 
 trainPredictPlot = np.empty_like(y)
 trainPredictPlot[:, :] = np.nan
-trainPredictPlot[0:len(trainPredict), :] = trainPredict
+trainPredictPlot[0:len(train_predict), :] = train_predict
 testPredictPlot = np.empty_like(y)
 testPredictPlot[:, :] = np.nan
-testPredictPlot[len(trainPredict):len(y), :] = testPredict
+testPredictPlot[len(train_predict):len(y), :] = test_predict
 plt.plot(y)
 plt.plot(trainPredictPlot)
 # print('testPrices:')
@@ -77,6 +92,3 @@ plt.plot(trainPredictPlot)
 # print(testPredict)
 plt.plot(testPredictPlot)
 plt.show()
-
-
-
